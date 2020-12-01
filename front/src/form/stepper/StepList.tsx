@@ -14,7 +14,7 @@ import { useHistory, useParams, generatePath } from "react-router-dom";
 
 import { InlineError } from "common/components/Error";
 import { updateApolloCache } from "common/helper";
-import { GET_SLIPS } from "dashboard/slips/query";
+import { DRAFT_TAB_FORMS } from "dashboard/slips/tabs/queries";
 import initialState from "../initial-state";
 import {
   Form,
@@ -67,8 +67,8 @@ export default function StepList(props: IProps) {
       }
       const saveForm = data.saveForm;
       updateApolloCache<{ forms: Form[] }>(store, {
-        query: GET_SLIPS,
-        variables: { siret, status: ["DRAFT"] },
+        query: DRAFT_TAB_FORMS,
+        variables: { siret },
         getNewData: data => ({
           forms: [...data.forms.filter(f => f.id !== saveForm.id), saveForm],
         }),

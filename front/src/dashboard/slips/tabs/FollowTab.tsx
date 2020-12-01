@@ -2,8 +2,8 @@ import { useQuery, NetworkStatus } from "@apollo/client";
 import React from "react";
 import { InlineError } from "common/components/Error";
 import Loader from "common/components/Loaders";
-import { FormStatus, Query, QueryFormsArgs } from "generated/graphql/types";
-import { GET_SLIPS } from "../query";
+import { Query, QueryFormsArgs } from "generated/graphql/types";
+import { FOLLOW_TAB_FORMS } from "./queries";
 import Slips from "../Slips";
 import TabContent from "./TabContent";
 import EmptyTab from "./EmptyTab";
@@ -14,20 +14,9 @@ export default function FollowTab() {
   const { error, data, fetchMore, refetch, networkStatus } = useQuery<
     Pick<Query, "forms">,
     Partial<QueryFormsArgs>
-  >(GET_SLIPS, {
+  >(FOLLOW_TAB_FORMS, {
     variables: {
       siret,
-      status: [
-        FormStatus.Sealed,
-        FormStatus.Sent,
-        FormStatus.Received,
-        FormStatus.TempStored,
-        FormStatus.Resealed,
-        FormStatus.Resent,
-        FormStatus.AwaitingGroup,
-        FormStatus.Grouped,
-      ],
-      hasNextStep: false,
     },
     notifyOnNetworkStatusChange: true,
     // workaround waiting for a way to append a sealed form to the cache

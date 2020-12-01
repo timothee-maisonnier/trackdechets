@@ -3,11 +3,10 @@ import React from "react";
 import { InlineError } from "common/components/Error";
 import Loader from "common/components/Loaders";
 import { Query, QueryFormsArgs } from "generated/graphql/types";
-import { GET_SLIPS } from "../query";
+import { ACT_TAB_FORMS } from "./queries";
 import Slips from "../Slips";
 import TabContent from "./TabContent";
 import EmptyTab from "./EmptyTab";
-import { statusesWithDynamicActions } from "../../constants";
 import { useParams } from "react-router-dom";
 
 export default function ActTab() {
@@ -15,11 +14,9 @@ export default function ActTab() {
   const { error, data, fetchMore, refetch, networkStatus } = useQuery<
     Pick<Query, "forms">,
     Partial<QueryFormsArgs>
-  >(GET_SLIPS, {
+  >(ACT_TAB_FORMS, {
     variables: {
       siret,
-      status: statusesWithDynamicActions,
-      hasNextStep: true,
     },
     notifyOnNetworkStatusChange: true,
   });

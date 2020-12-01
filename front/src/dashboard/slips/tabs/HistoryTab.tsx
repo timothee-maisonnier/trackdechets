@@ -2,8 +2,8 @@ import { useQuery, NetworkStatus } from "@apollo/client";
 import React from "react";
 import { InlineError } from "common/components/Error";
 import Loader from "common/components/Loaders";
-import { FormStatus, Query, QueryFormsArgs } from "generated/graphql/types";
-import { GET_SLIPS } from "../query";
+import { Query, QueryFormsArgs } from "generated/graphql/types";
+import { HISTORY_TAB_FORMS } from "./queries";
 import EmptyTab from "./EmptyTab";
 import Slips from "../Slips";
 
@@ -15,14 +15,9 @@ export default function HistoryTab() {
   const { error, data, fetchMore, refetch, networkStatus } = useQuery<
     Pick<Query, "forms">,
     Partial<QueryFormsArgs>
-  >(GET_SLIPS, {
+  >(HISTORY_TAB_FORMS, {
     variables: {
       siret,
-      status: [
-        FormStatus.Processed,
-        FormStatus.NoTraceability,
-        FormStatus.Refused,
-      ],
     },
     notifyOnNetworkStatusChange: true,
   });

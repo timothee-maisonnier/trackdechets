@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { COLORS } from "common/config";
 import { TrashIcon } from "common/components/Icons";
 import mutations from "./slip-actions.mutations";
-import { GET_SLIPS } from "../query";
+import { DRAFT_TAB_FORMS } from "../tabs/queries";
 import { useMutation } from "@apollo/client";
 import { updateApolloCache } from "common/helper";
 import {
@@ -45,8 +45,8 @@ export default function Delete({
       }
       const deleteForm = data.deleteForm;
       updateApolloCache<Pick<Query, "forms">>(cache, {
-        query: GET_SLIPS,
-        variables: { siret, status: ["DRAFT"] },
+        query: DRAFT_TAB_FORMS,
+        variables: { siret },
         getNewData: data => ({
           forms: [...data.forms.filter(f => f.id !== deleteForm.id)],
         }),

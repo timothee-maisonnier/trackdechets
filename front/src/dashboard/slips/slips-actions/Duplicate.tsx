@@ -9,7 +9,7 @@ import {
   Mutation,
   MutationDuplicateFormArgs,
 } from "generated/graphql/types";
-import { GET_SLIPS } from "../query";
+import { DRAFT_TAB_FORMS } from "../tabs/queries";
 import mutations from "./slip-actions.mutations";
 import { COLORS } from "common/config";
 import routes from "common/routes";
@@ -40,8 +40,8 @@ export default function Duplicate({
       }
       const duplicateForm = data.duplicateForm;
       updateApolloCache<{ forms: Form[] }>(store, {
-        query: GET_SLIPS,
-        variables: { siret, status: ["DRAFT"] },
+        query: DRAFT_TAB_FORMS,
+        variables: { siret },
         getNewData: data => ({
           forms: [...data.forms, duplicateForm],
         }),
