@@ -206,6 +206,7 @@ app.use(authRouter);
 app.use(oauth2Router);
 
 app.get("/ping", (_, res) => res.send("Pong!"));
+
 app.get("/userActivation", userActivationHandler);
 app.get("/download", downloadRouter);
 

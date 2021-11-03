@@ -19,7 +19,7 @@ export const vhuFormFactory = async ({
   });
 };
 
-const getVhuFormdata = (): Prisma.BsvhuCreateInput => ({
+export const getVhuFormdata = (): Prisma.BsvhuCreateInput => ({
   id: getReadableId(ReadableIdPrefix.VHU),
   emitterAgrementNumber: "agrement",
   emitterCompanyName: "emitter company",
