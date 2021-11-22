@@ -3,21 +3,18 @@ import { siretify } from "../../__tests__/factories";
 import prisma from "../../prisma";
 import { hash } from "bcrypt";
 import { hashToken } from "../../utils";
-import { CompanyType, UserRole } from "@prisma/client";
+import { CompanyType } from "@prisma/client";
 import { randomChoice } from "./utils";
 
-export const createUsersWithAccessToken = async (
-  quantity = 1,
-  opt = {},
-  start = 0
-) => {
+export const createUsersWithAccessToken = async (quantity = 1, opt = {}) => {
   const userData = [];
   const tokenData = [];
   const emailAndToken = [];
 
   const defaultPassword = await hash("pass", 10);
-  for (let i = start; i < quantity + start; i++) {
-    const idx = start + i + 1;
+  for (let i = 0; i < quantity; i++) {
+    const idx = i + 1;
+
     userData.push({
       name: `User_${idx}`,
       email: `user_${idx}@td.io`,
@@ -38,20 +35,27 @@ export const createUsersWithAccessToken = async (
     }
   });
 
-  let accessTokenIndex = 1 + start;
+  for (let i = 0; i < quantity; i++) {
+    const idx = i + 1;
+    const clearToken = `token_${idx}`;
 
-  for (const user of createdUsers) {
-    const clearToken = `token_bis_${accessTokenIndex}`;
+    const email = `user_${idx}@td.io`;
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true }
+    });
     emailAndToken.push({
       token: clearToken,
-      email: user.email
+      email 
     });
     tokenData.push({
       token: hashToken(clearToken),
       userId: user.id
     });
-    accessTokenIndex++;
+     
   }
+ 
+
   await prisma.accessToken.createMany({
     data: tokenData
   });
@@ -62,7 +66,7 @@ export const createUsersWithAccessToken = async (
 /**
  *   Takes a list of users ids and associate a company to have user_X@td.io - token_X - siret: 0000…X to ease queries
  */
-export async function createOneCompanyPerUser({ role: UserRole, start = 0 }) {
+export async function createOneCompanyPerUser({ role, start = 0 }) {
   const data = [];
   const users = await prisma.user.findMany({
     orderBy: {
@@ -106,13 +110,14 @@ export async function createOneCompanyPerUser({ role: UserRole, start = 0 }) {
   const assodata = companiesCreated.map((c, idx) => ({
     companyId: c.id,
     userId: users[idx].id,
-    role
+    role: role
   }));
 
   const res = companiesCreated.map((c, idx) => ({
     siret: c.siret,
     userId: users[idx].id
   }));
+
   await prisma.companyAssociation.createMany({
     data: assodata
   });
@@ -179,4 +184,32 @@ export async function createCompaniesAndAssociate(
   });
 
   return res;
+}
+
+/**
+ *   Associate users from 1010 to 200 to company 1
+ */
+export async function associateExistingUsers() {
+  const siret = siretify(1);
+  const company = await prisma.company.findUnique({
+    where: { siret: siret },
+    select: { id: true, siret: true }
+  });
+  for (let i = 101; i <= 2000; i++) {
+    const email = `user_${i}@td.io`;
+    const user = await prisma.user.findUnique({
+      where: { email: email },
+      select: { email: true, id: true }
+    });
+
+    await prisma.companyAssociation.create({
+      data: {
+        user: { connect: { id: user.id } },
+        company: {
+          connect: { id: company.id }
+        },
+        role: "MEMBER"
+      }
+    });
+  }
 }

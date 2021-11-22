@@ -6,7 +6,8 @@ import { UserRole } from "@prisma/client";
 import {
   createOneCompanyPerUser,
   createUsersWithAccessToken,
-  createCompaniesAndAssociate
+  createCompaniesAndAssociate,
+  associateExistingUsers
 } from "./users";
 import { createForms, createStatusLogs } from "./bsdds";
 import { createBsdasris } from "./bsdasris";
@@ -14,7 +15,7 @@ import { createBsdas } from "./bsdas";
 import { createBsvhus } from "./bsvhus";
 import { createBsffs } from "./bsffs";
 
-const USER_NUM = 300;
+const USER_NUM = 10000;
 const COMPANIES_WITH_BSDS = 100;
 const DASRI_PER_COMPANIES = 500;
 const BSDA_PER_COMPANIES = 500;
@@ -31,7 +32,9 @@ const COMPANY_PER_BIG_CORP_USER = 30;
   const userIds = await createUsersWithAccessToken(USER_NUM);
 
   // create companies to be queried
-  const usersAndMatchingCompany = await createOneCompanyPerUser(UserRole.ADMIN);
+  const usersAndMatchingCompany = await createOneCompanyPerUser({
+    role: UserRole.ADMIN
+  });
 
   for (const userId of userIds.slice(0, BIG_CORPS)) {
     await createCompaniesAndAssociate(
@@ -88,6 +91,7 @@ const COMPANY_PER_BIG_CORP_USER = 30;
   console.log("StatusLogs");
   await createStatusLogs();
 
+  await associateExistingUsers();
   console.log(`All done, exiting.`);
 
   console.timeEnd("script");
