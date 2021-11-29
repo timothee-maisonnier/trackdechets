@@ -10,7 +10,6 @@ import { FullUser } from "./types";
 import { UserInputError } from "apollo-server-express";
 import { hash } from "bcrypt";
 import { getUid, sanitizeEmail, hashToken } from "../utils";
-import { redisClient } from "../common/redis";
 
 export async function getUserCompanies(userId: string): Promise<Company[]> {
   const companyAssociations = await prisma.user
@@ -23,25 +22,6 @@ export async function getUserCompanies(userId: string): Promise<Company[]> {
         .company();
     })
   );
-}
-
-
-export async function setSirets(userId: string, sirets: string[]) {
- await redisClient.sadd(`user_${userId}`, sirets)
-}
-
-export async function getSirets(userId: string) {
-  const key = `user_${userId}`;
-  const exists = await redisClient.exists(key)
-  if (!!exists) {
-  
-    return  redisClient.smembers(key)
-  }
- 
-  const companies = await getUserCompanies(userId);
-  const sirets = companies.map(c => c.siret);
-  await redisClient.sadd(`user_${userId}`, sirets)
-  return sirets
 }
 
 /**

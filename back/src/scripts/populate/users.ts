@@ -46,15 +46,13 @@ export const createUsersWithAccessToken = async (quantity = 1, opt = {}) => {
     });
     emailAndToken.push({
       token: clearToken,
-      email 
+      email
     });
     tokenData.push({
       token: hashToken(clearToken),
       userId: user.id
     });
-     
   }
- 
 
   await prisma.accessToken.createMany({
     data: tokenData
