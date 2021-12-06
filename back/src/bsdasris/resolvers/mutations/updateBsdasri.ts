@@ -7,13 +7,17 @@ import {
 } from "../../../generated/graphql/types";
 
 import { checkIsAuthenticated } from "../../../common/permissions";
-import { checkIsBsdasriContributor } from "../../permissions";
+import {
+  checkIsBsdasriContributor,
+  checkCanEditBsdasri
+} from "../../permissions";
 
 import { GraphQLContext } from "../../../types";
 import { getBsdasriOrNotFound } from "../../database";
 import { validateBsdasri } from "../../validation";
 import { ForbiddenError } from "apollo-server-express";
 import { indexBsdasri } from "../../elastic";
+import { getUserSirets } from "../../../users/database";
 
 type BsdasriField = keyof Bsdasri;
 const fieldsAllowedForUpdateOnceReceived: BsdasriField[] = [
@@ -117,18 +121,25 @@ const dasriUpdateResolver = async (
   context: GraphQLContext
 ) => {
   const user = checkIsAuthenticated(context);
+  const userSirets = await getUserSirets(user.id);
 
   const { id, input } = { ...args };
 
   const { grouping: inputGrouping, ...dasriContent } = input;
 
-  const { grouping: dbGrouping, ...dbBsdasri } = await getBsdasriOrNotFound({
+  const {
+    grouping: dbGrouping,
+    synthesizing,
+    ...dbBsdasri
+  } = await getBsdasriOrNotFound({
     id,
     includeGrouped: true
   });
 
+  checkCanEditBsdasri(dbBsdasri);
+
   await checkIsBsdasriContributor(
-    user,
+    userSirets,
     dbBsdasri,
     "Vous ne pouvez pas modifier un bordereau sur lequel votre entreprise n'apparaît pas"
   );

@@ -5,10 +5,12 @@ import { unflattenBsdasri } from "../../converter";
 import { validateBsdasri } from "../../validation";
 import {
   checkIsBsdasriContributor,
-  checkIsBsdasriPublishable
+  checkIsBsdasriPublishable,
+  checkCanEditBsdasri
 } from "../../permissions";
 import prisma from "../../../prisma";
 import { indexBsdasri } from "../../elastic";
+import { getUserSirets } from "../../../users/database";
 
 const publishBsdasriResolver: MutationResolvers["publishBsdasri"] = async (
   _,
@@ -16,27 +18,33 @@ const publishBsdasriResolver: MutationResolvers["publishBsdasri"] = async (
   context
 ) => {
   const user = checkIsAuthenticated(context);
-  const { grouping, ...bsdasri } = await getBsdasriOrNotFound({
+  const userSirets = await getUserSirets(user.id);
+
+  const { grouping, synthesizing, ...bsdasri } = await getBsdasriOrNotFound({
     id,
     includeGrouped: true
   });
+
+  checkCanEditBsdasri(bsdasri);
+
   await checkIsBsdasriContributor(
-    user,
+    userSirets,
     bsdasri,
     "Vous ne pouvez publier ce bordereau si vous ne figurez pas dessus"
   );
   await checkIsBsdasriPublishable(
-    user,
     bsdasri,
     grouping.map(el => el.id)
   );
 
   await validateBsdasri(bsdasri, { emissionSignature: true });
+
   // publish  dasri
   const publishedBsdasri = await prisma.bsdasri.update({
     where: { id: bsdasri.id },
     data: { isDraft: false }
   });
+
   const expandedDasri = unflattenBsdasri(publishedBsdasri);
   await indexBsdasri(publishedBsdasri);
   return expandedDasri;

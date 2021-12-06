@@ -7,23 +7,50 @@ import { GraphQLContext } from "../../../types";
 import { unflattenBsdasri, flattenBsdasriInput } from "../../converter";
 import getReadableId, { ReadableIdPrefix } from "../../../forms/readableId";
 import { checkIsAuthenticated } from "../../../common/permissions";
-import { validateBsdasri } from "../../validation";
+import { validateBsdasri, BsdasriValidationContext } from "../../validation";
 import { checkIsBsdasriContributor } from "../../permissions";
-import { emitterIsAllowedToGroup, checkDasrisAreGroupable } from "./utils";
+import {
+  emitterIsAllowedToGroup,
+  checkDasrisAreGroupable,
+  checkDasrisAreSynthesisable,
+  emitterBelongsToUserSirets
+} from "./utils";
 import { indexBsdasri } from "../../elastic";
+import { UserInputError } from "apollo-server-express";
+import { BsdasriType } from "@prisma/client";
+import { getUserSirets } from "../../../users/database";
+
+const getValidationContext = ({
+  isDraft,
+  isGrouping,
+  isSynthesizing
+}: {
+  isDraft: boolean;
+  isGrouping: boolean;
+  isSynthesizing: boolean;
+}): BsdasriValidationContext => {
+  if (isSynthesizing) {
+    return { emissionSignature: true, isSynthesizing };
+  }
+  return isDraft ? { isGrouping } : { emissionSignature: true, isGrouping };
+};
 
 /**
  * Bsdasri creation mutation
- * sets bsdasri type to `GROUPING` if a non empty array of grouping dasris is provided
+ * sets bsdasri type to :
+ * - `GROUPING` if a non empty array of grouping dasris is provided
+ * - `SYNTHESIZING` if a non empty array of grouping dasris is provided
+ * - `SIMPLE` otherwise
  */
 const createBsdasri = async (
-  parent: ResolversParentTypes["Mutation"],
+  _: ResolversParentTypes["Mutation"],
   { input }: MutationCreateBsdasriArgs,
   context: GraphQLContext,
   isDraft: boolean
 ) => {
   const user = checkIsAuthenticated(context);
-  const { grouping, ...rest } = input;
+  const { grouping, synthesizing, ...rest } = input;
+  const userSirets = await getUserSirets(user.id);
 
   const formSirets = {
     emitterCompanySiret: input.emitter?.company?.siret,
@@ -32,7 +59,7 @@ const createBsdasri = async (
   };
 
   await checkIsBsdasriContributor(
-    user,
+    userSirets,
     formSirets,
     "Vous ne pouvez pas créer un bordereau sur lequel votre entreprise n'apparaît pas"
   );
@@ -40,25 +67,62 @@ const createBsdasri = async (
   const flattenedInput = flattenBsdasriInput(rest);
 
   const isGrouping = !!grouping && !!grouping.length;
+  const isSynthesizing = !!synthesizing && !!synthesizing.length;
 
+  if (isGrouping && isSynthesizing) {
+    throw new UserInputError(
+      "Un bordereau dasri ne peut pas à la fois effectuer une opération de synthèse et de regroupement"
+    );
+  }
+
+  // grouping perms check
   if (isGrouping) {
     await emitterIsAllowedToGroup(flattenedInput?.emitterCompanySiret);
     await checkDasrisAreGroupable(grouping, flattenedInput.emitterCompanySiret);
   }
+
+  // synthesis perms check and specific rules
+  if (isSynthesizing) {
+    if (isDraft) {
+      throw new UserInputError(
+        `La création de dasri de synthèse en brouillon n'est pas possible`
+      );
+    }
+
+    await emitterBelongsToUserSirets(
+      flattenedInput.emitterCompanySiret,
+      userSirets
+    );
+
+    await checkDasrisAreSynthesisable(
+      synthesizing,
+      flattenedInput.emitterCompanySiret
+    );
+  }
+
   const groupedBsdasris = isGrouping ? grouping.map(id => ({ id })) : [];
+  const synthesizedBsdasris = isSynthesizing
+    ? synthesizing.map(id => ({ id }))
+    : [];
 
-  const signatureContext = isDraft
-    ? { isGrouping }
-    : { emissionSignature: true, isGrouping };
+  await validateBsdasri(
+    flattenedInput,
+    getValidationContext({ isDraft, isGrouping, isSynthesizing })
+  );
 
-  await validateBsdasri(flattenedInput, signatureContext);
+  let bsdasriType: BsdasriType = isGrouping
+    ? BsdasriType.GROUPING
+    : BsdasriType.SIMPLE;
+  bsdasriType = isSynthesizing ? BsdasriType.SYNTHESIS : bsdasriType;
 
   const newDasri = await prisma.bsdasri.create({
     data: {
       ...flattenedInput,
       id: getReadableId(ReadableIdPrefix.DASRI),
-      type: isGrouping ? "GROUPING" : "SIMPLE",
+      // status: isSynthesizing ? BsdasriStatus.SENT : BsdasriStatus.INITIAL,
+      type: bsdasriType,
       grouping: { connect: groupedBsdasris },
+      synthesizing: { connect: synthesizedBsdasris },
       isDraft: isDraft
     }
   });

@@ -24,6 +24,11 @@ export async function getUserCompanies(userId: string): Promise<Company[]> {
   );
 }
 
+export async function getUserSirets(userId: string): Promise<string[]> {
+  const companies = await getUserCompanies(userId);
+  return companies.map(c => c.siret);
+}
+
 /**
  * Returns a user with linked objects
  * @param user

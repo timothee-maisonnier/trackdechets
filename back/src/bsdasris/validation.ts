@@ -1,4 +1,4 @@
-import { WasteAcceptationStatus, Prisma } from "@prisma/client";
+import { WasteAcceptationStatus, Prisma, BsdasriType } from "@prisma/client";
 import { isCollector } from "../companies/validation";
 import * as yup from "yup";
 import {
@@ -15,6 +15,7 @@ import {
 } from "../generated/graphql/types";
 
 const wasteCodes = DASRI_WASTE_CODES.map(el => el.code);
+
 // set yup default error messages
 configureYup();
 
@@ -116,6 +117,29 @@ const INVALID_DASRI_WASTE_CODE =
   "Ce code déchet n'est pas autorisé pour les DASRI";
 const INVALID_PROCESSING_OPERATION =
   "Cette opération d’élimination / valorisation n'existe pas ou n'est pas appropriée";
+
+/**
+ * Emitter and tranporter must be the same company
+ *
+ */
+export const synthesisSchema = () =>
+  yup.object({
+    emitterCompanySiret: yup
+      .string()
+      .length(14, `Émetteur: ${INVALID_SIRET_LENGTH}`)
+      .required("Siret emetteur requis"),
+    transporterCompanySiret: yup
+      .string()
+      .length(14, `Transporteur: ${INVALID_SIRET_LENGTH}`)
+      .required("Siret trs Requis")
+      .test(
+        "emitter-must-be-transporter-for-dasri-synthesis",
+        "Pour un dasri de synthèse, les sirets du producteur est transporteur doivent être identiques",
+        function (value) {
+          return this.parent.emitterCompanySiret === value;
+        }
+      )
+  });
 
 export const emitterSchema: FactorySchemaOf<BsdasriValidationContext, Emitter> =
   context =>
@@ -358,6 +382,15 @@ export const transportSchema: FactorySchemaOf<
       .requiredIf(
         context.transportSignature,
         "Vous devez préciser si le déchet est accepté"
+      )
+      .test(
+        "synthesis-trs-acceptation",
+        "Un dasri de synthèse en peut pas être refusé par le transporteur",
+        function (value) {
+          return this.parent.type === BsdasriType.SYNTHESIS
+            ? value === WasteAcceptationStatus.ACCEPTED || !value
+            : true;
+        }
       ),
 
     transporterWasteRefusedWeightValue: yup
@@ -616,20 +649,26 @@ export type BsdasriValidationContext = {
   receptionSignature?: boolean;
   operationSignature?: boolean;
   isGrouping?: boolean;
+  isSynthesizing?: boolean;
 };
 export function validateBsdasri(
   dasri: Partial<Prisma.BsdasriCreateInput>,
   context: BsdasriValidationContext
 ) {
-  return emitterSchema(context)
+  let schema = emitterSchema(context)
     .concat(emissionSchema(context))
     .concat(transporterSchema(context))
     .concat(transportSchema(context))
     .concat(recipientSchema(context))
     .concat(receptionSchema(context))
     .concat(operationSchema(context))
-    .concat(ecoOrganismeSchema(context))
-    .validate(dasri, { abortEarly: false });
+    .concat(ecoOrganismeSchema(context));
+
+  // synthesis specific rules
+  if (!!context.isSynthesizing) {
+    schema = schema.concat(synthesisSchema());
+  }
+  return schema.validate(dasri, { abortEarly: false });
 }
 
 /**

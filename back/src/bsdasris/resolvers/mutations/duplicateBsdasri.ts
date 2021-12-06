@@ -9,6 +9,8 @@ import prisma from "../../../prisma";
 import { unflattenBsdasri } from "../../converter";
 import { getBsdasriOrNotFound } from "../../database";
 import { checkIsBsdasriContributor } from "../../permissions";
+import { getUserSirets } from "../../../users/database";
+
 import { indexBsdasri } from "../../elastic";
 /**
  *
@@ -25,13 +27,14 @@ const duplicateBsdasriResolver: MutationResolvers["duplicateBsdasri"] = async (
   context
 ) => {
   const user = checkIsAuthenticated(context);
+  const userSirets = await getUserSirets(user.id);
 
   const bsdasri = await getBsdasriOrNotFound({
     id
   });
 
   await checkIsBsdasriContributor(
-    user,
+    userSirets,
     bsdasri,
     "Vous ne pouvez pas modifier un bordereau sur lequel votre entreprise n'apparait pas."
   );
@@ -86,6 +89,7 @@ function duplicateBsdasri(
     destinationOperationSignatureDate,
     destinationOperationSignatureAuthor,
     groupedInId,
+    synthesizedInId,
     identificationNumbers,
 
     ...fieldsToCopy

@@ -1,11 +1,13 @@
 import { checkIsAuthenticated } from "../../../common/permissions";
 import { getBsdasriOrNotFound } from "../../database";
 import { unflattenBsdasri } from "../../converter";
+import { UserInputError } from "apollo-server-express";
 import { InvalidTransition } from "../../../forms/errors";
-
+import prisma from "../../../../src/prisma";
 import dasriTransition from "../../workflow/dasriTransition";
-
+import { BsdasriType, BsdasriStatus } from "@prisma/client";
 import { checkIsCompanyMember } from "../../../users/permissions";
+import { checkCanEditBsdasri } from "../../permissions";
 import {
   dasriSignatureMapping,
   checkEmitterAllowsDirectTakeOver,
@@ -13,9 +15,72 @@ import {
   getFieldsUpdate
 } from "./signatureUtils";
 import { indexBsdasri } from "../../elastic";
+
+/**
+ * When synthesized dasri is received or processed, associated dasri are updated
+ *
+ */
+const cascadeOnSynthesized = async ({ dasri }) => {
+  if (dasri.status === BsdasriStatus.RECEIVED) {
+    const {
+      destinationCompanyName,
+      destinationCompanySiret,
+      destinationCompanyAddress,
+      destinationCompanyContact,
+      destinationCompanyPhone,
+      destinationCompanyMail,
+      destinationReceptionDate,
+      receptionSignatoryId,
+      destinationReceptionSignatureAuthor,
+      destinationReceptionSignatureDate
+    } = dasri;
+    await prisma.bsdasri.updateMany({
+      where: { synthesizedInId: dasri.id },
+      data: {
+        status: BsdasriStatus.RECEIVED,
+        destinationCompanyName,
+        destinationCompanySiret,
+        destinationCompanyAddress,
+        destinationCompanyContact,
+        destinationCompanyPhone,
+        destinationCompanyMail,
+        destinationReceptionDate,
+        receptionSignatoryId,
+        destinationReceptionSignatureAuthor,
+        destinationReceptionSignatureDate
+      }
+    });
+  }
+
+  if (dasri.status === BsdasriStatus.PROCESSED) {
+    const {
+      destinationOperationCode,
+      destinationOperationDate,
+      operationSignatoryId,
+      destinationOperationSignatureDate,
+      destinationOperationSignatureAuthor
+    } = dasri;
+
+    await prisma.bsdasri.updateMany({
+      where: { synthesizedInId: dasri.id },
+      data: {
+        status: BsdasriStatus.PROCESSED,
+        destinationOperationCode,
+        destinationOperationDate,
+        operationSignatoryId,
+        destinationOperationSignatureDate,
+        destinationOperationSignatureAuthor
+      }
+    });
+  }
+};
+
 const basesign = async ({ id, input, context, securityCode = null }) => {
   const user = checkIsAuthenticated(context);
-  const bsdasri = await getBsdasriOrNotFound({ id });
+  const bsdasri = await getBsdasriOrNotFound({ id, includeSynthesized: true });
+
+  checkCanEditBsdasri(bsdasri);
+
   if (bsdasri.isDraft) {
     throw new InvalidTransition();
   }
@@ -39,6 +104,14 @@ const basesign = async ({ id, input, context, securityCode = null }) => {
       securityCode
     });
 
+  if (bsdasri.type === BsdasriType.SYNTHESIS) {
+    if (!bsdasri.synthesizing?.length) {
+      throw new UserInputError(
+        "Un dasri de synthèse doit avoir des bordereaux associés"
+      );
+    }
+  }
+
   const data = {
     [signatureParams.author]: input.author,
     [signatureParams.date]: new Date(),
@@ -58,6 +131,9 @@ const basesign = async ({ id, input, context, securityCode = null }) => {
     { isEmissionDirectTakenOver, isEmissionTakenOverWithSecretCode }
   );
 
+  if (updatedDasri.type === BsdasriType.SYNTHESIS) {
+    await cascadeOnSynthesized({ dasri: updatedDasri });
+  }
   const expandedDasri = unflattenBsdasri(updatedDasri);
   await indexBsdasri(updatedDasri);
   return expandedDasri;

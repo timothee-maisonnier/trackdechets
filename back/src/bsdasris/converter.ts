@@ -209,6 +209,23 @@ export const unflattenGroupingDasri = (dasri: Bsdasri): InitialBsdasri => ({
     dasri?.emitterPickupSitePostalCode ??
     extractPostalCode(dasri?.emitterCompanyAddress)
 });
+
+export const unflattenSynthesizingDasri = (dasri: Bsdasri): InitialBsdasri => ({
+  id: dasri.id,
+
+  quantity: countWasteQuantity(dasri.emitterWastePackagings),
+
+  volume: 0,
+
+  weight: 0,
+
+  takenOverAt: dasri.transporterTakenOverAt,
+
+  postalCode:
+    dasri?.emitterPickupSitePostalCode ??
+    extractPostalCode(dasri?.emitterCompanyAddress)
+});
+
 type computeTotalVolumeFn = (packagings: BsdasriPackagingsInput[]) => number;
 /**
  * Compute total volume according to packaging infos details

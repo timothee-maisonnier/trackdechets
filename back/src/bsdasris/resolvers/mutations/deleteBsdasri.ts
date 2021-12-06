@@ -5,6 +5,7 @@ import * as elastic from "../../../common/elastic";
 import { getBsdasriOrNotFound } from "../../database";
 import { unflattenBsdasri } from "../../converter";
 import { checkCanDeleteBsdasri } from "../../permissions";
+import { getUserSirets } from "../../../users/database";
 
 /**
  *
@@ -16,14 +17,16 @@ const deleteBsdasriResolver: MutationResolvers["deleteBsdasri"] = async (
   context
 ) => {
   const user = checkIsAuthenticated(context);
+  const userSirets = await getUserSirets(user.id);
 
-  const { grouping, ...bsdasri } = await getBsdasriOrNotFound({
+  const { grouping, synthesizing, ...bsdasri } = await getBsdasriOrNotFound({
     id,
     includeGrouped: true
   });
   // user must belong to the dasri, and status must be INITIAL
   // if this dasri is regrouped by an other, it should be in another status thus being not deletable
-  await checkCanDeleteBsdasri(user, bsdasri);
+  // grouped Basdasri are RECEIVED and synthesized Bsdasri are SENT so they can't be deleted
+  await checkCanDeleteBsdasri(userSirets, bsdasri);
 
   // are any dasris grouped on the dasri we want to mark as deleted ?
   if (!!grouping.length) {

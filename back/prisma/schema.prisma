@@ -883,21 +883,26 @@ model Bsdasri {
   destinationReceptionWasteWeightValue        Float? // kg
   destinationReceptionWasteVolume             Int? // liters
   destinationReceptionDate                    DateTime? // accepted or refused date
-  // processing
-  destinationOperationCode                    String?
-  destinationOperationDate                    DateTime?
   receptionSignatory                          User?                   @relation("BsdasriReceptionSignature", fields: [receptionSignatoryId], references: [id])
   receptionSignatoryId                        String?
-  destinationReceptionSignatureDate           DateTime?
   destinationReceptionSignatureAuthor         String?
-  operationSignatory                          User?                   @relation("BsdasriOperationSignature", fields: [operationSignatoryId], references: [id])
-  operationSignatoryId                        String?
-  destinationOperationSignatureDate           DateTime?
-  destinationOperationSignatureAuthor         String?
-  // associations
-  grouping                                    Bsdasri[]               @relation("BsdasriToBsdasri")
-  groupedIn                                   Bsdasri?                @relation("BsdasriToBsdasri", fields: [groupedInId], references: [id])
-  groupedInId                                 String?
+  destinationReceptionSignatureDate           DateTime?
+
+  // processing
+  destinationOperationCode            String?
+  destinationOperationDate            DateTime?
+  operationSignatory                  User?     @relation("BsdasriOperationSignature", fields: [operationSignatoryId], references: [id])
+  operationSignatoryId                String?
+  destinationOperationSignatureDate   DateTime?
+  destinationOperationSignatureAuthor String?
+  // grouping
+  grouping                            Bsdasri[] @relation("BsdasriGrouping")
+  groupedIn                           Bsdasri?  @relation("BsdasriGrouping", fields: [groupedInId], references: [id])
+  groupedInId                         String?
+  //synthesis
+  synthesizing                        Bsdasri[] @relation("BsdasriSynthesizing")
+  synthesizedIn                       Bsdasri?  @relation("BsdasriSynthesizing", fields: [synthesizedInId], references: [id])
+  synthesizedInId                     String?
 
   @@index([emitterCompanySiret], map: "_BsdasriEmitterCompanySiretIdx")
   @@index([transporterCompanySiret], map: "_BsdasriTransporterCompanySiretIdx")

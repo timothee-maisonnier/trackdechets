@@ -1,6 +1,4 @@
-import { Company, User, Bsdasri, BsdasriStatus } from "@prisma/client";
-
-import { getFullUser } from "../users/database";
+import { Bsdasri, BsdasriStatus } from "@prisma/client";
 
 import { BsdasriSirets } from "./types";
 
@@ -13,50 +11,44 @@ export class InvalidPublicationAttempt extends UserInputError {
   }
 }
 
-function isDasriEmitter(user: { companies: Company[] }, dasri: BsdasriSirets) {
+function isDasriEmitter(userCompaniesSirets: string[], dasri: BsdasriSirets) {
   if (!dasri.emitterCompanySiret) {
     return false;
   }
-  const sirets = user.companies.map(c => c.siret);
-  return sirets.includes(dasri.emitterCompanySiret);
+
+  return userCompaniesSirets.includes(dasri.emitterCompanySiret);
 }
 
-function isDasriRecipient(
-  user: { companies: Company[] },
-  dasri: BsdasriSirets
-) {
+function isDasriRecipient(userCompaniesSirets: string[], dasri: BsdasriSirets) {
   if (!dasri.destinationCompanySiret) {
     return false;
   }
-  const sirets = user.companies.map(c => c.siret);
-  return sirets.includes(dasri.destinationCompanySiret);
+
+  return userCompaniesSirets.includes(dasri.destinationCompanySiret);
 }
 
 function isDasriTransporter(
-  user: { companies: Company[] },
+  userCompaniesSirets: string[],
   dasri: BsdasriSirets
 ) {
   if (!dasri.transporterCompanySiret) {
     return false;
   }
-  const sirets = user.companies.map(c => c.siret);
-  return sirets.includes(dasri.transporterCompanySiret);
-}
 
-export async function isDasriContributor(user: User, dasri: BsdasriSirets) {
-  const fullUser = await getFullUser(user);
-
-  return [isDasriEmitter, isDasriTransporter, isDasriRecipient].some(
-    isFormRole => isFormRole(fullUser, dasri)
-  );
+  return userCompaniesSirets.includes(dasri.transporterCompanySiret);
 }
 
 export async function checkIsBsdasriContributor(
-  user: User,
+  userSirets: string[],
   dasri: BsdasriSirets,
   errorMsg: string
 ) {
-  const isContributor = await isDasriContributor(user, dasri);
+  console.log("--", userSirets, dasri);
+  const isContributor = [
+    isDasriEmitter,
+    isDasriTransporter,
+    isDasriRecipient
+  ].some(isFormRole => isFormRole(userSirets, dasri));
 
   if (!isContributor) {
     throw new NotFormContributor(errorMsg);
@@ -65,7 +57,6 @@ export async function checkIsBsdasriContributor(
   return true;
 }
 export async function checkIsBsdasriPublishable(
-  user: User,
   dasri: Bsdasri,
   grouping?: string[]
 ) {
@@ -81,17 +72,31 @@ export async function checkIsBsdasriPublishable(
 
   return true;
 }
-export async function checkCanReadBsdasri(user: User, bsdasri: Bsdasri) {
+export async function checkCanReadBsdasri(
+  userSirets: string[],
+  bsdasri: Bsdasri
+) {
   return checkIsBsdasriContributor(
-    user,
+    userSirets,
     bsdasri,
     "Vous n'êtes pas autorisé à accéder à ce bordereau"
   );
 }
 
-export async function checkCanDeleteBsdasri(user: User, bsdasri: Bsdasri) {
+export function checkCanEditBsdasri(bsdasri: Bsdasri) {
+  if (!!bsdasri.synthesizedInId)
+    throw new ForbiddenError(
+      "Ce bordereau est regroupé dans un bordereau de synthèse, il n'est pas modifiable, aucune signature ne peut y être apposée "
+    );
+  return true;
+}
+
+export async function checkCanDeleteBsdasri(
+  userSirets: string[],
+  bsdasri: Bsdasri
+) {
   await checkIsBsdasriContributor(
-    user,
+    userSirets,
     bsdasri,
     "Vous n'êtes pas autorisé à supprimer ce bordereau."
   );

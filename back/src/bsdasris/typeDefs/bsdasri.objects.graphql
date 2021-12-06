@@ -196,11 +196,17 @@ type Bsdasri {
   """
   identification: BsdasriIdentification
 
-  "Bordereaux regroupés"
+  "Bordereaux groupés par une opération de groupement"
   grouping: [InitialBsdasri!]
 
-  "Regroupé dans le bordereau"
+  "Groupé dans le bordereau par une opération de groupement"
   groupedIn: Bsdasri
+
+  "Bordereaux regroupés par une opération de synthèse"
+  synthesizing: [InitialBsdasri!]
+
+  "Groupé dans le bordereau par une opération de synthèse"
+  synthesizedIn: Bsdasri
 
   metadata: BsdasriMetadata!
 

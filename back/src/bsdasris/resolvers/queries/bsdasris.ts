@@ -8,12 +8,13 @@ import { getCursorConnectionsArgs } from "../../cursorPagination";
 import { GraphQLContext } from "../../../types";
 import { toPrismaWhereInput } from "../../where";
 import { applyMask } from "../../../common/where";
-import { getUserCompanies } from "../../../users/database";
+import { getUserSirets } from "../../../users/database";
 
 const defaultPaginateBy = 50;
 
 export default async function dasris(_, args, context: GraphQLContext) {
   const user = checkIsAuthenticated(context);
+  const userSirets = await getUserSirets(user.id);
 
   const { where: whereArgs, ...paginationArgs } = args;
 
@@ -25,8 +26,6 @@ export default async function dasris(_, args, context: GraphQLContext) {
     maxPaginateBy: 500
   });
 
-  const userCompanies = await getUserCompanies(user.id);
-  const userSirets = userCompanies.map(c => c.siret);
   // ensure query returns only bsds belonging to current user
   const mask = {
     OR: [
