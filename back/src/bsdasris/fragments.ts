@@ -141,6 +141,7 @@ export const fullBsdasriFragment = gql`
     }
   }
 `;
+
 export const fullGroupingBsdasriFragment = gql`
   ${fullBsdasriFragment}
   ${initialBsdasriFragment}
@@ -151,6 +152,12 @@ export const fullGroupingBsdasriFragment = gql`
       ...InitialBsdasriFragment
     }
     groupedIn {
+      id
+    }
+    synthesizing {
+      ...InitialBsdasriFragment
+    }
+    synthesizedIn {
       id
     }
   }

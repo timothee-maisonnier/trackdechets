@@ -162,9 +162,9 @@ type InitialBsdasri {
   id: ID!
   "Nombre de contenants reçus"
   quantity: Int
-  "Volume associé"
+  "Volume reçu dans le cas d'un groupement, émis dans le cas d'une synthèse"
   volume: Int
-  "Poids de déchets (en kg) traités"
+  "Poids de déchets (en kg) traités dans le cas d'un groupement, émis (si renseigné) dans le cas d'une synthèse"
   weight: Float
   "Date de collecte initiale"
   takenOverAt: DateTime

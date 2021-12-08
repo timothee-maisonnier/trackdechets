@@ -60,8 +60,12 @@ input BsdasriWhere {
   """
   (Optionnel) Filtre sur l'état de regroupement des bordereaux
   Si aucun filtre n'est passé, les bordereaux seront retournés sans filtrage supplémentaire
-  Si groupable: true, les bordereaux retournés ne sont pas déjà regroupés et ne regroupent pas d'autres bordereaux
-  Si groupable: false, les bordereaux retournés ne sont déjà regroupés ou ne regroupent d'autres bordereaux
+  Si groupable: true, les bordereaux retournés:
+    - ne regroupent pas d'autres bordereaux (groupement ou synthèse)
+    - ne sont pas associés à un bordereau de synthèse ou de groupement
+  Si groupable: false les bordereaux retournés: 
+    - sont déjà associés à un bordereau de synthèse ou de groupement 
+    - ou regroupent d'autres bordereaux (groupement ou synthèse)
   """
   groupable: Boolean
 

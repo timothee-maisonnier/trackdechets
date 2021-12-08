@@ -222,7 +222,7 @@ describe("Mutation.createDasri", () => {
       where: { id: toRegroup1.id }
     });
     const grouped2 = await prisma.bsdasri.findUnique({
-      where: { id: toRegroup1.id }
+      where: { id: toRegroup2.id }
     });
     expect(grouped1.groupedInId).toEqual(data.createBsdasri.id);
 

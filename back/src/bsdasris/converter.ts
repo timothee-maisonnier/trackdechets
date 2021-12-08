@@ -215,9 +215,9 @@ export const unflattenSynthesizingDasri = (dasri: Bsdasri): InitialBsdasri => ({
 
   quantity: countWasteQuantity(dasri.emitterWastePackagings),
 
-  volume: 0,
+  volume:   dasri.emitterWasteVolume ?? 0,
 
-  weight: 0,
+  weight:    dasri?.emitterWasteWeightValue ?? 0,
 
   takenOverAt: dasri.transporterTakenOverAt,
 
