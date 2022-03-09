@@ -42,21 +42,5 @@
     </noscript>
     <div id="root"></div>
 
-    <!-- CRISP -->
-    <script type="text/javascript">
-      var environment = "%NODE_ENV%";
-      if (environment === "production") {
-        // CRISP
-        window.$crisp = ["safe", true];
-        window.CRISP_WEBSITE_ID = "11231caa-e6f1-436b-addc-eec1e0ddf040";
-        (function () {
-          d = document;
-          s = d.createElement("script");
-          s.src = "https://client.crisp.chat/l.js";
-          s.async = 1;
-          d.getElementsByTagName("head")[0].appendChild(s);
-        })();
-      }
-    </script>
   </body>
 </html>
