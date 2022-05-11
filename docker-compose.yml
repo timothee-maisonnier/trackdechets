@@ -91,12 +91,29 @@ services:
       API_HOST: $API_HOST
       API_PORT: $API_PORT
       UI_HOST: $UI_HOST
+      COCKPIT_HOST: $COCKPIT_HOST
       DEVELOPERS_HOST: $DEVELOPERS_HOST
       NGINX_PROXY_HOST: $NGINX_PROXY_HOST
       ELASTIC_SEARCH_HOST: $ELASTIC_SEARCH_HOST
       KIBANA_HOST: $KIBANA_HOST
     ports:
       - "80:80"
+ 
+  cockpit:
+    image: td-cockpit
+    restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
+    environment:
+      NODE_ENV: dev
+    build:
+      context: ./cockpit
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./cockpit/app:/usr/src/app/app
+      - ./cockpit/prisma:/usr/src/app/prisma
+      
+    ports:
+      - "4001:3000"
+
 
 volumes:
   postgres:
