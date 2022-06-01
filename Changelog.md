@@ -28,6 +28,7 @@ et le projet suit un schéma de versionning inspiré de [Calendar Versioning](ht
 #### :house: Interne
 
 - Passage à React V18. [PR 1385](https://github.com/MTES-MCT/trackdechets/pull/1385)
+- Envoi des emails d'onboarding par le biais de la job queue [PR 1430](https://github.com/MTES-MCT/trackdechets/pull/1430/)
 
 # [2022.06.1] ~06/06/2022
 
