@@ -2,7 +2,6 @@ import { useMutation, useQuery } from "@apollo/client";
 import cogoToast from "cogo-toast";
 import { Loader } from "common/components";
 import { GET_BSDS } from "common/queries";
-import routes from "common/routes";
 import GenericStepList, {
   getComputedState,
 } from "form/common/stepper/GenericStepList";
@@ -17,7 +16,7 @@ import {
   BsdaInput,
 } from "generated/graphql/types";
 import React, { ReactElement, useMemo } from "react";
-import { generatePath, useHistory, useParams } from "react-router-dom";
+import { useHistory, useParams } from "react-router-dom";
 import initialState from "./initial-state";
 import { CREATE_BSDA, UPDATE_BSDA, GET_BSDA } from "./queries";
 import omitDeep from "omit-deep-lodash";
@@ -102,10 +101,7 @@ export default function BsdaStepsList(props: Props) {
     const { id, ...input } = values;
     saveForm(input)
       .then(_ => {
-        const redirectTo = generatePath(routes.dashboard.bsds.drafts, {
-          siret,
-        });
-        history.push(redirectTo);
+        history.goBack();
       })
       .catch(err => {
         if (err.graphQLErrors?.length) {
